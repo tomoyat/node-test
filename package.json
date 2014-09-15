@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "connect": "*",
-    "express": "3.1"
+    "express": "3.1",
+    "underscore": "*"
   }
 }

@@ -1,11 +1,37 @@
 var cluster = require("cluster"),
-    express = require("express");
+    express = require("express"),
+    _ = require("underscore"),
     numCpus = require("os").cpus.length;
 
-if (cluster.isMaster) {
-  for (var i = 0; i < 2; i++) {
-    cluster.fork();
+function createWorkers(num) {
+  var workers = {};
+  for (var i = 0; i < num; i++) {
+    var w = cluster.fork();
+    workers[w.id] = w;
+    w.on("disconnect", function(){
+      console.log("disconnect : " + w.id);
+    });
   }
+  return workers;
+}
+
+if (cluster.isMaster) {
+  var workers = {};
+  workers = createWorkers(2);
+
+  process.on("SIGUSR2", function(){
+    console.log("Rcv SIGUSR2, Graceful restart");
+    var new_workers = createWorkers(2);
+    setTimeout(function() {
+      console.log("restart!");
+      // todo check new worker status;
+
+      _.each(workers, function(w){
+        w.disconnect();
+      });
+      workers = new_workers;
+    }, 5000);
+  });
 
   cluster.on("exit", function(worker, code, signal){
     console.log("worker " + worker.process.pid + " is died");
